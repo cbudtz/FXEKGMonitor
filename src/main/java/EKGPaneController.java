@@ -1,6 +1,7 @@
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.shape.Polyline;
 import jssc.SerialPort;
 import jssc.SerialPortException;
@@ -11,10 +12,12 @@ public class EKGPaneController {
     public Polyline polyLine;
     @FXML
     public TextField textField;
+    public AnchorPane anchorPane;
     double position = 0;
 
     @FXML
     public void recordEKG(MouseEvent mouseEvent) {
+        //noinspection Convert2Lambda
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -35,23 +38,24 @@ public class EKGPaneController {
                 System.out.println("Reading from port...");
 
                 while (true){
+                    double scalefactor = anchorPane.getHeight() * (1.0/2000);
+                    System.out.println(scalefactor);
                     try {
                         String serialString = serialPort.readString().replace("\"", "");
                         String[] split = serialString.split("\\r?\\n");
                         for (String s : split){
-                            System.out.println("String: " + s);
-                            if (s==null || "" == s)continue;
+                            if (s==null || "".equals(s))continue;
                             try  {
                                 double mv = Double.parseDouble(s);
                                 if (mv>100){ //Discard half-readings
-                                mv = (640 - mv)/4 + 300;
+                                mv = (anchorPane.getHeight() - mv) * scalefactor + anchorPane.getHeight()/2;
                                     polyLine.getPoints().addAll(position++, mv); //
                                 }
                             } catch (NumberFormatException e){
                                 System.out.println("Error on " + s);
                             }
 
-                            if (position >640){
+                            if (position >anchorPane.getWidth()){
                                 position=0;
                                 polyLine.getPoints().clear();
                             }

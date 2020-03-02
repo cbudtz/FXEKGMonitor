@@ -24,6 +24,7 @@ public class EKGApp extends Application {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        primaryStage.setOnCloseRequest(windowEvent->System.exit(0));
 
 
 
