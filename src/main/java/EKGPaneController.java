@@ -30,54 +30,62 @@ public class EKGPaneController {
                 System.out.println("Opening Port");
                 try {
                     serialPort.openPort();
-                   // serialPort.setParams(SerialPort.BAUDRATE_115200, SerialPort.DATABITS_8,SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+                    serialPort.setParams(SerialPort.BAUDRATE_115200, SerialPort.DATABITS_8,SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+                    while (true){
+                        double scalefactor = anchorPane.getHeight() * (1.0/2000);
+                        System.out.println(scalefactor);
+                        try {
+                            String serialString = serialPort.readString();
+                            if (null==serialString) continue;
+                            serialString = serialString.replace("\"", "");
+                            String[] split = serialString.split("\\r?\\n");
+                            for (String s : split){
+                                if (s==null || "".equals(s))continue;
+                                try  {
+                                    double mv = Double.parseDouble(s);
+                                    if (mv>100){ //Discard half-readings
+                                        mv = (anchorPane.getHeight() - mv) * scalefactor + anchorPane.getHeight()/2;
+                                        polyLine.getPoints().addAll(position++, mv); //
+                                    }
+                                } catch (NumberFormatException e){
+                                    System.out.println("Error on " + s);
+                                }
+
+                                if (position >anchorPane.getWidth()){
+                                    position=0;
+                                    polyLine.getPoints().clear();
+                                }
+                            }
+
+                            //textArea.setText(textArea.getText() + serialString);
+
+
+                        } catch (SerialPortException e) {
+                            e.printStackTrace();
+                        }
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
 
                 } catch (SerialPortException e) {
                     e.printStackTrace();
-                }
-                System.out.println("Reading from port...");
-
-                while (true){
-                    double scalefactor = anchorPane.getHeight() * (1.0/2000);
-                    System.out.println(scalefactor);
+                } finally {
                     try {
-                        String serialString = serialPort.readString().replace("\"", "");
-                        String[] split = serialString.split("\\r?\\n");
-                        for (String s : split){
-                            if (s==null || "".equals(s))continue;
-                            try  {
-                                double mv = Double.parseDouble(s);
-                                if (mv>100){ //Discard half-readings
-                                mv = (anchorPane.getHeight() - mv) * scalefactor + anchorPane.getHeight()/2;
-                                    polyLine.getPoints().addAll(position++, mv); //
-                                }
-                            } catch (NumberFormatException e){
-                                System.out.println("Error on " + s);
-                            }
-
-                            if (position >anchorPane.getWidth()){
-                                position=0;
-                                polyLine.getPoints().clear();
-                            }
-                        }
-
-                        //textArea.setText(textArea.getText() + serialString);
-
-
+                        serialPort.closePort();
                     } catch (SerialPortException e) {
                         e.printStackTrace();
                     }
-                    try {
-                        Thread.sleep(25);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-
                 }
+
+
             }
         }
         ).start();
+
 
     }
 }
